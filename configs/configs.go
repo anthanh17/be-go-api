@@ -18,6 +18,7 @@ type DatabaseConfig struct {
 	Username string
 	Password string
 	Database string
+	Source   string
 }
 
 // CacheConfig struct for cache configuration
