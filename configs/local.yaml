@@ -1,0 +1,13 @@
+database:
+  host: 127.0.0.1
+  port: 3306
+  username: root
+  password: example
+  database: user
+cache:
+  type: "redis"
+  address: "127.0.0.1:6379"
+  username: ""
+  password: ""
+http:
+  address: "0.0.0.0:8081"
