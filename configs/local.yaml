@@ -6,9 +6,9 @@ database:
   host: 127.0.0.1
   port: 3306
   username: root
-  password: example
-  database: user
-  source: postgresql://root:secret@localhost:5432/simple_bank?sslmode=disable
+  password: secret
+  database: engineer_pro
+  source: postgresql://root:secret@localhost:5432/engineer_pro?sslmode=disable
 cache:
   type: "redis"
   address: "127.0.0.1:6379"

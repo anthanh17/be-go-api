@@ -13,7 +13,7 @@ import (
 	"github.com/redis/go-redis/v9"
 )
 
-// Server serves HTTP requests for our banking service.
+// Server serves HTTP requests for our service.
 type Server struct {
 	config     configs.Config
 	store      db.Store
