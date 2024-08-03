@@ -3,7 +3,7 @@ URL = localhost
 
 # ----------------------------- Setup database ---------------------------------
 databaseup:
-	docker compose -f deployments/docker-compose.yaml up
+	docker compose -f deployments/docker-compose.yaml up -d
 
 databasedown:
 	docker compose -f deployments/docker-compose.yaml down
