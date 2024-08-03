@@ -1,13 +1,15 @@
 package main
 
 import (
-	"context"
-	"ep-golang-caching/configs"
-	db "ep-golang-caching/internal/dataaccess/database/sqlc"
-	"ep-golang-caching/internal/handler/http"
 	"log"
 
-	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/anthanh17/be-go-api/configs"
+	"github.com/anthanh17/be-go-api/internal/dataaccess/cache"
+	db "github.com/anthanh17/be-go-api/internal/dataaccess/database/sqlc"
+	"github.com/anthanh17/be-go-api/internal/handler/http"
+	"github.com/anthanh17/be-go-api/internal/utils"
+
+	"go.uber.org/zap"
 )
 
 func main() {
@@ -16,26 +18,50 @@ func main() {
 		log.Fatal("cannot load config:", err)
 	}
 
-	// Connect postgress database
-	connPool, err := pgxpool.New(context.Background(), config.Database.Source)
-	if err != nil {
-		log.Fatal("cannot connect to db")
-	}
-
-	store := db.NewStore(connPool)
-
 	// Run server HTTP
-	runGinServer(config, store)
+	if err = runGinServer(config); err != nil {
+		panic(err)
+	}
 }
 
-func runGinServer(config configs.Config, store db.Store) {
-	server, err := http.NewServer(config, store)
+func runGinServer(config configs.Config) error {
+	// Logger
+	logger, cleanup, err := utils.InitializeLogger(config.Log.Level)
 	if err != nil {
-		log.Fatal("cannot create server")
+		cleanup()
+		logger.With(zap.Error(err)).Error("cannot initialize logger")
+		return err
+	}
+	defer cleanup()
+
+	// Database Accessor
+	store, cleanupFunc, err := db.InitializeUpDB(config.Database, logger)
+	if err != nil {
+		cleanupFunc()
+		logger.Info("error InitializeUpDB")
+		return err
+	}
+	defer cleanupFunc()
+
+	// Caching: in case using redis caching
+	cacheMaker, err := cache.NewCachierClient(config.Cache, logger)
+	if err != nil {
+		logger.Info("error NewCachierClient")
+		return err
+	}
+
+	// Gin Server
+	server, err := http.NewServer(config, store, cacheMaker, logger)
+	if err != nil {
+		logger.Info("cannot create serve")
+		return err
 	}
 
 	err = server.Start(config.HTTP.Address)
 	if err != nil {
-		log.Fatal("cannot start server")
+		logger.Info("cannot start serve")
+		return err
 	}
+
+	return nil
 }

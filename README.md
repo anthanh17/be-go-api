@@ -1,4 +1,4 @@
-# ep-golang-caching
+# github.com/anthanh17/be-go-api
 
 ## REQUIREMENT 🙏
 

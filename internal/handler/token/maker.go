@@ -5,6 +5,7 @@ import (
 )
 
 // Maker is an interface for managing tokens
+// Repository pattern
 type Maker interface {
 	// CreateToken creates a new token for a specific username and duration
 	CreateToken(username string, role string, duration time.Duration) (string, *Payload, error)

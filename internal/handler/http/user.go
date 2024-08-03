@@ -5,8 +5,8 @@ import (
 	"net/http"
 	"time"
 
-	db "ep-golang-caching/internal/dataaccess/database/sqlc"
-	"ep-golang-caching/internal/utils"
+	db "github.com/anthanh17/be-go-api/internal/dataaccess/database/sqlc"
+	"github.com/anthanh17/be-go-api/internal/utils"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"

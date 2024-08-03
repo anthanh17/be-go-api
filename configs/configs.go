@@ -6,6 +6,8 @@ import (
 	"github.com/spf13/viper"
 )
 
+type CacheType string
+
 // Config stores all configuration of the application.
 type Config struct {
 	Token    TokenConfig
@@ -29,13 +31,13 @@ type DatabaseConfig struct {
 	Username string
 	Password string
 	Database string
-	Source   string
 }
 
 // CacheConfig struct for cache configuration
 type CacheConfig struct {
-	Type     string
-	Address  string
+	Type     CacheType
+	Host     string
+	Port     int
 	Username string
 	Password string
 }

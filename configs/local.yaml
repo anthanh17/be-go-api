@@ -1,20 +1,20 @@
 token:
   accessTokenDuration: 15m
   refreshTokenDuration: 24h
-  tokenSymmetricKey: "12345678901234567890123456789012" # 32 byte
+  tokenSymmetricKey: 12345678901234567890123456789012 # 32 byte
 database:
   host: 127.0.0.1
-  port: 3306
+  port: 5432
   username: root
   password: secret
   database: engineer_pro
-  source: postgresql://root:secret@localhost:5432/engineer_pro?sslmode=disable
 cache:
-  type: "redis"
-  address: "127.0.0.1:6379"
-  username: ""
-  password: ""
+  type: redis
+  host: 127.0.0.1
+  port: 6379
+  username:
+  password:
 http:
-  address: "0.0.0.0:8081"
+  address: 0.0.0.0:8081
 log:
-  level: "info"
+  level: info

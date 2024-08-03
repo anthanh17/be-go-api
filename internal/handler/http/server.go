@@ -1,17 +1,16 @@
 package http
 
 import (
-	"context"
-	"ep-golang-caching/configs"
-	db "ep-golang-caching/internal/dataaccess/database/sqlc"
-	"ep-golang-caching/internal/handler/token"
-	"ep-golang-caching/internal/utils"
 	"fmt"
 	"time"
 
+	"github.com/anthanh17/be-go-api/configs"
+	"github.com/anthanh17/be-go-api/internal/dataaccess/cache"
+	db "github.com/anthanh17/be-go-api/internal/dataaccess/database/sqlc"
+	"github.com/anthanh17/be-go-api/internal/handler/token"
+
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
-	"github.com/redis/go-redis/v9"
 	"go.uber.org/zap"
 )
 
@@ -21,40 +20,26 @@ type Server struct {
 	store      db.Store
 	tokenMaker token.Maker
 	router     *gin.Engine
-	redisdb    *redis.Client
+	cacheMaker cache.Cachier
 	logger     *zap.Logger
 }
 
 // NewServer creates a new HTTP server and setup routing.
-func NewServer(config configs.Config, store db.Store) (*Server, error) {
+func NewServer(config configs.Config, store db.Store, cachier cache.Cachier, logger *zap.Logger) (*Server, error) {
 	tokenMaker, err := token.NewJWTMaker(config.Token.TokenSymmetricKey)
 	if err != nil {
 		return nil, fmt.Errorf("cannot create token maker: %w", err)
-	}
-
-	logger, cleanup, err := utils.InitializeLogger(config.Log.Level)
-	if err != nil {
-		cleanup()
-		return nil, fmt.Errorf("cannot initialize logger: %w", err)
 	}
 
 	server := &Server{
 		config:     config,
 		store:      store,
 		tokenMaker: tokenMaker,
-		redisdb: redis.NewClient(&redis.Options{
-			Addr: config.Cache.Address,
-		}),
-		logger: logger,
+		cacheMaker: cachier,
+		logger:     logger,
 	}
 
-	err = server.redisdb.Ping(context.Background()).Err()
-	if err != nil {
-		// logger.With(zap.Error(err)).Error("cannot connect redis")
-		logger.Info("cannot connect redis")
-		return nil, fmt.Errorf("cannot connect redis: %w", err)
-	}
-
+	// Router
 	server.setupRouter()
 
 	return server, nil

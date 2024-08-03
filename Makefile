@@ -1,5 +1,5 @@
-URL = localhost
-# URL = ec2-18-141-12-199.ap-southeast-1.compute.amazonaws.com
+HOST = localhost
+# HOST = ec2-18-141-12-199.ap-southeast-1.compute.amazonaws.com
 
 # ----------------------------- Setup database ---------------------------------
 databaseup:
@@ -11,17 +11,17 @@ databasedown:
 # ------------------- Read schema sql -> crete or update database --------------
 # Migarte database all
 migrateup:
-	migrate -path internal/dataaccess/database/migration -database "postgresql://root:secret@$(URL):5432/engineer_pro?sslmode=disable" -verbose up
+	migrate -path internal/dataaccess/database/migration -database "postgresql://root:secret@$(HOST):5432/engineer_pro?sslmode=disable" -verbose up
 
 migratedown:
-	migrate -path internal/dataaccess/database/migration -database "postgresql://root:secret@$(URL):5432/engineer_pro?sslmode=disable" -verbose down
+	migrate -path internal/dataaccess/database/migration -database "postgresql://root:secret@$(HOST):5432/engineer_pro?sslmode=disable" -verbose down
 
 # Migarte database lastest
 migrateup1:
-	migrate -path internal/dataaccess/database/migration -database "postgresql://root:secret@$(URL):5432/engineer_pro?sslmode=disable" -verbose up 1
+	migrate -path internal/dataaccess/database/migration -database "postgresql://root:secret@$(HOST):5432/engineer_pro?sslmode=disable" -verbose up 1
 
 migratedown1:
-	migrate -path internal/dataaccess/database/migration -database "postgresql://root:secret@$(URL):5432/engineer_pro?sslmode=disable" -verbose down 1
+	migrate -path internal/dataaccess/database/migration -database "postgresql://root:secret@$(HOST):5432/engineer_pro?sslmode=disable" -verbose down 1
 
 # ------------------- Read schema and query sqlc -> generate code golang -------
 # sqlc gen code golang
