@@ -1,14 +1,24 @@
 package configs
 
 import (
+	"time"
+
 	"github.com/spf13/viper"
 )
 
 // Config stores all configuration of the application.
 type Config struct {
+	Token    TokenConfig
 	Database DatabaseConfig
 	Cache    CacheConfig
 	HTTP     HTTPConfig
+}
+
+// TokenConfig struct for token configuration
+type TokenConfig struct {
+	AccessTokenDuration  time.Duration
+	RefreshTokenDuration time.Duration
+	TokenSymmetricKey    string
 }
 
 // DatabaseConfig struct for database configuration

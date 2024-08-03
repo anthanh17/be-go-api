@@ -4,6 +4,7 @@ import (
 	"context"
 	"ep-golang-caching/configs"
 	db "ep-golang-caching/internal/dataaccess/database/sqlc"
+	"ep-golang-caching/internal/handler/token"
 	"fmt"
 	"time"
 
@@ -14,30 +15,30 @@ import (
 
 // Server serves HTTP requests for our banking service.
 type Server struct {
-	config configs.Config
-	store  db.Store
-	// tokenMaker token.Maker
-	router  *gin.Engine
-	redisdb *redis.Client
+	config     configs.Config
+	store      db.Store
+	tokenMaker token.Maker
+	router     *gin.Engine
+	redisdb    *redis.Client
 }
 
 // NewServer creates a new HTTP server and setup routing.
 func NewServer(config configs.Config, store db.Store) (*Server, error) {
-	// tokenMaker, err := token.NewPasetoMaker(config.TokenSymmetricKey)
-	// if err != nil {
-	// 	return nil, fmt.Errorf("cannot create token maker: %w", err)
-	// }
+	tokenMaker, err := token.NewJWTMaker(config.Token.TokenSymmetricKey)
+	if err != nil {
+		return nil, fmt.Errorf("cannot create token maker: %w", err)
+	}
 
 	server := &Server{
-		config: config,
-		store:  store,
-		// tokenMaker: tokenMaker,
+		config:     config,
+		store:      store,
+		tokenMaker: tokenMaker,
 		redisdb: redis.NewClient(&redis.Options{
 			Addr: config.Cache.Address,
 		}),
 	}
 
-	err := server.redisdb.Ping(context.Background()).Err()
+	err = server.redisdb.Ping(context.Background()).Err()
 	if err != nil {
 		return nil, fmt.Errorf("cannot connect redis: %w", err)
 	}
@@ -60,14 +61,9 @@ func (server *Server) setupRouter() {
 		MaxAge:           12 * time.Hour,
 	}))
 
-	// router.POST("/login", server.loginUser)
-	// router.POST("/otp", server.verifyOtp)
-	// router.POST("/verify-token", server.verifyTokenApi)
-	// router.POST("/refresh", server.refreshTokenGenAccessToken)
-
-	// router.POST("/users", server.createUser)
-	// router.GET("/user/:id", server.getUser)
-	// router.GET("/users", server.listUser)
+	router.POST("/users", server.createUser)
+	router.POST("/users/login", server.loginUser)
+	router.POST("/tokens/renew_access", server.renewAccessToken)
 
 	server.router = router
 }
@@ -77,6 +73,6 @@ func (server *Server) Start(address string) error {
 	return server.router.Run(address)
 }
 
-// func errorResponse(err error) gin.H {
-// 	return gin.H{"error": err.Error()}
-// }
+func errorResponse(err error) gin.H {
+	return gin.H{"error": err.Error()}
+}
