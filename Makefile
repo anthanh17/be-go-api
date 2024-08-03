@@ -2,8 +2,11 @@ URL = localhost
 # URL = ec2-18-141-12-199.ap-southeast-1.compute.amazonaws.com
 
 # ----------------------------- Setup database ---------------------------------
-database:
-	docker-compose -f ./deployments/docker-compose.yaml up
+databaseup:
+	docker compose -f deployments/docker-compose.yaml up
+
+databasedown:
+	docker compose -f deployments/docker-compose.yaml down
 
 # ------------------- Read schema sql -> crete or update database --------------
 # Migarte database all
@@ -29,4 +32,4 @@ sqlc:
 server:
 	go run cmd/main.go
 
-.PHONY: database migrateup migratedown migrateup1 migratedown1 sqlc server
+.PHONY: databaseup databasedown migrateup migratedown migrateup1 migratedown1 sqlc server
