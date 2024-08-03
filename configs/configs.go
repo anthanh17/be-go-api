@@ -12,6 +12,7 @@ type Config struct {
 	Database DatabaseConfig
 	Cache    CacheConfig
 	HTTP     HTTPConfig
+	Log      Log
 }
 
 // TokenConfig struct for token configuration
@@ -42,6 +43,11 @@ type CacheConfig struct {
 // HTTPConfig struct for HTTP server configuration
 type HTTPConfig struct {
 	Address string
+}
+
+// HTTPConfig struct for HTTP server configuration
+type Log struct {
+	Level string
 }
 
 func LoadConfig() (config Config, err error) {

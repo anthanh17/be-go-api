@@ -5,12 +5,14 @@ import (
 	"ep-golang-caching/configs"
 	db "ep-golang-caching/internal/dataaccess/database/sqlc"
 	"ep-golang-caching/internal/handler/token"
+	"ep-golang-caching/internal/utils"
 	"fmt"
 	"time"
 
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	"github.com/redis/go-redis/v9"
+	"go.uber.org/zap"
 )
 
 // Server serves HTTP requests for our service.
@@ -20,6 +22,7 @@ type Server struct {
 	tokenMaker token.Maker
 	router     *gin.Engine
 	redisdb    *redis.Client
+	logger     *zap.Logger
 }
 
 // NewServer creates a new HTTP server and setup routing.
@@ -29,6 +32,12 @@ func NewServer(config configs.Config, store db.Store) (*Server, error) {
 		return nil, fmt.Errorf("cannot create token maker: %w", err)
 	}
 
+	logger, cleanup, err := utils.InitializeLogger(config.Log.Level)
+	if err != nil {
+		cleanup()
+		return nil, fmt.Errorf("cannot initialize logger: %w", err)
+	}
+
 	server := &Server{
 		config:     config,
 		store:      store,
@@ -36,10 +45,13 @@ func NewServer(config configs.Config, store db.Store) (*Server, error) {
 		redisdb: redis.NewClient(&redis.Options{
 			Addr: config.Cache.Address,
 		}),
+		logger: logger,
 	}
 
 	err = server.redisdb.Ping(context.Background()).Err()
 	if err != nil {
+		// logger.With(zap.Error(err)).Error("cannot connect redis")
+		logger.Info("cannot connect redis")
 		return nil, fmt.Errorf("cannot connect redis: %w", err)
 	}
 

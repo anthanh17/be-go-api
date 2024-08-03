@@ -1,7 +1,7 @@
 token:
   accessTokenDuration: 15m
   refreshTokenDuration: 24h
-  tokenSymmetricKey: 12345678901234567890123456789012 # 32 byte
+  tokenSymmetricKey: "12345678901234567890123456789012" # 32 byte
 database:
   host: 127.0.0.1
   port: 3306
@@ -16,3 +16,5 @@ cache:
   password: ""
 http:
   address: "0.0.0.0:8081"
+log:
+  level: "info"

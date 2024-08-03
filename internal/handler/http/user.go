@@ -37,15 +37,17 @@ func newUserResponse(user db.User) userResponse {
 	}
 }
 
-func (server *Server) createUser(ctx *gin.Context) {
+func (s *Server) createUser(ctx *gin.Context) {
 	var req createUserRequest
 	if err := ctx.ShouldBindJSON(&req); err != nil {
+		s.logger.Info("cannot ShouldBindJSON req")
 		ctx.JSON(http.StatusBadRequest, errorResponse(err))
 		return
 	}
 
 	hashedPassword, err := utils.HashPassword(req.Password)
 	if err != nil {
+		s.logger.Info("cannot hashedPassword")
 		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
 		return
 	}
@@ -57,8 +59,9 @@ func (server *Server) createUser(ctx *gin.Context) {
 		Email:          req.Email,
 	}
 
-	user, err := server.store.CreateUser(ctx, arg)
+	user, err := s.store.CreateUser(ctx, arg)
 	if err != nil {
+		s.logger.Info("cannot CreateUser")
 		if db.ErrorCode(err) == db.UniqueViolation {
 			ctx.JSON(http.StatusForbidden, errorResponse(err))
 			return
@@ -85,15 +88,17 @@ type loginUserResponse struct {
 	User                  userResponse `json:"user"`
 }
 
-func (server *Server) loginUser(ctx *gin.Context) {
+func (s *Server) loginUser(ctx *gin.Context) {
 	var req loginUserRequest
 	if err := ctx.ShouldBindJSON(&req); err != nil {
+		s.logger.Info("cannot ShouldBindJSON req")
 		ctx.JSON(http.StatusBadRequest, errorResponse(err))
 		return
 	}
 
-	user, err := server.store.GetUser(ctx, req.Username)
+	user, err := s.store.GetUser(ctx, req.Username)
 	if err != nil {
+		s.logger.Info("cannot GetUser")
 		if errors.Is(err, db.ErrRecordNotFound) {
 			ctx.JSON(http.StatusNotFound, errorResponse(err))
 			return
@@ -104,31 +109,34 @@ func (server *Server) loginUser(ctx *gin.Context) {
 
 	err = utils.CheckPassword(req.Password, user.HashedPassword)
 	if err != nil {
+		s.logger.Info("cannot CheckPassword")
 		ctx.JSON(http.StatusUnauthorized, errorResponse(err))
 		return
 	}
 
-	accessToken, accessPayload, err := server.tokenMaker.CreateToken(
+	accessToken, accessPayload, err := s.tokenMaker.CreateToken(
 		user.Username,
 		user.Role,
-		server.config.Token.AccessTokenDuration,
+		s.config.Token.AccessTokenDuration,
 	)
 	if err != nil {
+		s.logger.Info("cannot accessToken")
 		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
 		return
 	}
 
-	refreshToken, refreshPayload, err := server.tokenMaker.CreateToken(
+	refreshToken, refreshPayload, err := s.tokenMaker.CreateToken(
 		user.Username,
 		user.Role,
-		server.config.Token.RefreshTokenDuration,
+		s.config.Token.RefreshTokenDuration,
 	)
 	if err != nil {
+		s.logger.Info("cannot refreshToken")
 		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
 		return
 	}
 
-	session, err := server.store.CreateSession(ctx, db.CreateSessionParams{
+	session, err := s.store.CreateSession(ctx, db.CreateSessionParams{
 		ID:           refreshPayload.ID,
 		Username:     user.Username,
 		RefreshToken: refreshToken,
@@ -138,6 +146,7 @@ func (server *Server) loginUser(ctx *gin.Context) {
 		ExpiresAt:    refreshPayload.ExpiredAt,
 	})
 	if err != nil {
+		s.logger.Info("cannot CreateSession")
 		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
 		return
 	}
