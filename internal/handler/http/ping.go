@@ -14,7 +14,20 @@ func (s *Server) ping(ctx *gin.Context) {
 	accessPayload := ctx.MustGet(authorizationPayloadKey).(*token.Payload)
 
 	/*
-	* 1. Count the number of times a person calls the api /ping
+	* 1.Rate limit: each client can only call API /ping 2 times in 60 seconds
+	 */
+	// Check rate limit
+	rateLimittKey := "rate_limit:" + accessPayload.Username
+	if ok, err := s.sessionCache.CheckRateLimit(ctx, rateLimittKey); err != nil || !ok {
+		ctx.JSON(
+			http.StatusTooManyRequests,
+			gin.H{"error": "each client can only call API /ping 2 times"},
+		)
+		return
+	}
+
+	/*
+	* 2.Count the number of times a person calls the api /ping
 	 */
 	pingCountKey := "ping_counter:" + accessPayload.Username
 
@@ -45,7 +58,7 @@ func (s *Server) ping(ctx *gin.Context) {
 	}
 
 	/*
-	* 2. The /ping API only allows 1 caller at a time
+	* 3.The /ping API only allows 1 caller at a time
 	* (with sleep inside that api for 5 seconds).
 	 */
 	// Get ping_lock_key
