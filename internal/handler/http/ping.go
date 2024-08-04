@@ -8,7 +8,7 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func (s *Server) Ping(ctx *gin.Context) {
+func (s *Server) ping(ctx *gin.Context) {
 	// Get data by access token
 	accessPayload := ctx.MustGet(authorizationPayloadKey).(*token.Payload)
 
@@ -34,8 +34,8 @@ func (s *Server) Ping(ctx *gin.Context) {
 		}()
 
 		// Handle API, include sleep
-		time.Sleep(5 * time.Second)
-		ctx.JSON(http.StatusOK, gin.H{"message": "Pong"})
+		time.Sleep(10 * time.Second)
+		ctx.JSON(http.StatusOK, gin.H{"message": "pong"})
 	} else {
 		// If the lock cannot be set (API is locked)
 		ctx.JSON(http.StatusTooManyRequests, gin.H{"error": "API is currently in use"})
