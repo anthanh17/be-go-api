@@ -12,7 +12,7 @@ type SessionCache interface {
 	GetSession(ctx context.Context, id string) (SessionType, error)
 	SetSession(ctx context.Context, id string, data SessionType) error
 
-	Get(ctx context.Context, key string) (string, error)
+	Get(ctx context.Context, key string) (any, error)
 	Set(ctx context.Context, key string, data any) error
 	// SetNX
 	SetPingLock(ctx context.Context, key string, data any) (bool, error)
@@ -69,7 +69,7 @@ func (s sessionCache) GetSession(ctx context.Context, id string) (SessionType, e
 	return sessionData, nil
 }
 
-func (s sessionCache) Get(ctx context.Context, key string) (string, error) {
+func (s sessionCache) Get(ctx context.Context, key string) (any, error) {
 	logger := utils.LoggerWithContext(ctx, s.logger).With(zap.String("key", key))
 
 	// Get cache data
@@ -85,14 +85,7 @@ func (s sessionCache) Get(ctx context.Context, key string) (string, error) {
 		return "", ErrCacheMiss
 	}
 
-	// Check data type session
-	cacheData, ok := cacheEntry.(string)
-	if !ok {
-		logger.Error("cache entry is not of string")
-		return "", nil
-	}
-
-	return cacheData, nil
+	return cacheEntry, nil
 }
 
 func (s sessionCache) SetSession(ctx context.Context, id string, data SessionType) error {

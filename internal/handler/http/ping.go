@@ -1,7 +1,6 @@
 package http
 
 import (
-	"fmt"
 	"net/http"
 	"strconv"
 	"time"
@@ -21,15 +20,16 @@ func (s *Server) ping(ctx *gin.Context) {
 
 	// Get value ping_counter cache
 	counter := 0
-	count, err := s.sessionCache.Get(ctx, pingCountKey)
+	countString, err := s.sessionCache.Get(ctx, pingCountKey)
 	if err == nil {
-		fmt.Println("ooo")
-		num, err := strconv.Atoi(count)
-		if err != nil {
-			s.logger.Info("Conversion error:" + err.Error())
-		} else {
-			fmt.Println("Helele")
-			counter = num
+		count, ok := countString.(string)
+		if ok {
+			countNumber, err := strconv.Atoi(count)
+			if err != nil {
+				s.logger.Info("Conversion error:" + err.Error())
+			} else {
+				counter = countNumber
+			}
 		}
 	}
 
