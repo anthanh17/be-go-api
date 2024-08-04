@@ -9,6 +9,11 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+const (
+	topUsersKey            = "top_users"
+	usernameHyperLogLogKey = "ping_users"
+)
+
 func (s *Server) ping(ctx *gin.Context) {
 	// Get data by access token
 	accessPayload := ctx.MustGet(authorizationPayloadKey).(*token.Payload)
@@ -61,7 +66,6 @@ func (s *Server) ping(ctx *gin.Context) {
 	* 3.The /top/ API returns the top 10 people who called the /ping API the most
 	* In API /ping: Increase the number of calls in Sorted Set
 	 */
-	topUsersKey := "top_users"
 	err = s.sessionCache.IncreaseTopCalls(ctx, topUsersKey, accessPayload.Username)
 	if err != nil {
 		s.logger.Info("failed - IncreaseTopCalls")
@@ -70,7 +74,18 @@ func (s *Server) ping(ctx *gin.Context) {
 	}
 
 	/*
-	* 3.The /ping API only allows 1 caller at a time
+	* 4.Use hyperloglog to store the approximate number of api /ping callers,
+	* and return it in api /count
+	 */
+	err = s.sessionCache.AddUsernameHyperLogLog(ctx, usernameHyperLogLogKey, accessPayload.Username)
+	if err != nil {
+		s.logger.Info("failed - AddUsernameHyperLogLog")
+		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+		return
+	}
+
+	/*
+	* 5.The /ping API only allows 1 caller at a time
 	* (with sleep inside that api for 5 seconds).
 	 */
 	// Get ping_lock_key
@@ -118,4 +133,20 @@ func (s *Server) top(ctx *gin.Context) {
 	}
 
 	ctx.JSON(http.StatusOK, gin.H{"top_users": listUser})
+}
+
+func (s *Server) count(ctx *gin.Context) {
+	// * Using `hyperloglog` data structure Redis
+	/*
+	* Use hyperloglog to store the approximate number of api /ping callers,
+	* and return it in api /count
+	 */
+	count, err := s.sessionCache.CountUsernameHyperLogLog(ctx, usernameHyperLogLogKey)
+	if err != nil {
+		s.logger.Info("failed - CountUsernameHyperLogLog")
+		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+		return
+	}
+
+	ctx.JSON(http.StatusOK, gin.H{"count": count})
 }

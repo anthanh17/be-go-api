@@ -25,6 +25,9 @@ type SessionCache interface {
 	IncreaseTopCalls(ctx context.Context, key string, username string) error
 	// Get the top 10 users with the most calls
 	Top10UsersCalling(ctx context.Context, key string) ([]string, error)
+	// Use hyperloglog to store the approximate number of api /ping callers
+	AddUsernameHyperLogLog(ctx context.Context, key string, username string) error
+	CountUsernameHyperLogLog(ctx context.Context, key string) (int64, error)
 }
 
 type SessionType struct {
@@ -212,9 +215,43 @@ func (s sessionCache) Top10UsersCalling(ctx context.Context, key string) ([]stri
 
 	// Convert result -> username
 	var topUsers []string
-        for _, item := range result {
-                topUsers = append(topUsers, item.Member.(string))
-        }
+	for _, item := range result {
+		topUsers = append(topUsers, item.Member.(string))
+	}
 
 	return topUsers, nil
+}
+
+func (s sessionCache) AddUsernameHyperLogLog(ctx context.Context, key string, username string) error {
+	cachier, ok := s.cachier.(*redisClient)
+	if !ok {
+		s.logger.Info("cachier is not redis")
+		return fmt.Errorf("cachier is not redis")
+	}
+
+	// Add username to HyperLogLog
+	err := cachier.redisClient.PFAdd(ctx, key, username).Err()
+	if err != nil {
+		s.logger.Info("error PFAdd:" + err.Error())
+		return fmt.Errorf("error PFAdd")
+	}
+
+	return nil
+}
+
+func (s sessionCache) CountUsernameHyperLogLog(ctx context.Context, key string) (int64, error) {
+	cachier, ok := s.cachier.(*redisClient)
+	if !ok {
+		s.logger.Info("cachier is not redis")
+		return -1, fmt.Errorf("cachier is not redis")
+	}
+
+	// Count Username in HyperLogLog
+	count, err := cachier.redisClient.PFCount(ctx, key).Result()
+	if err != nil {
+		s.logger.Info("error PFCount:" + err.Error())
+		return -1, fmt.Errorf("error PFCount")
+	}
+
+	return count, nil
 }
