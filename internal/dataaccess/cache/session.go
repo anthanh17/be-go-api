@@ -21,6 +21,10 @@ type SessionCache interface {
 
 	// Add on
 	CheckRateLimit(ctx context.Context, key string) (bool, error)
+	// Increase the number of calls in Sorted Set
+	IncreaseTopCalls(ctx context.Context, key string, username string) error
+	// Get the top 10 users with the most calls
+	Top10UsersCalling(ctx context.Context, key string) ([]string, error)
 }
 
 type SessionType struct {
@@ -173,4 +177,44 @@ func (s sessionCache) CheckRateLimit(ctx context.Context, key string) (bool, err
 	}
 
 	return true, nil
+}
+
+func (s sessionCache) IncreaseTopCalls(ctx context.Context, key string, username string) error {
+	cachier, ok := s.cachier.(*redisClient)
+	if !ok {
+		s.logger.Info("cachier is not redis")
+		return fmt.Errorf("cachier is not redis")
+	}
+
+	// Increase the number of calls in Sorted Set
+	err := cachier.redisClient.ZIncrBy(ctx, key, 1, username).Err()
+	if err != nil {
+		s.logger.Info("error ZIncrBy:" + err.Error())
+		return fmt.Errorf("error ZIncrBy")
+	}
+
+	return nil
+}
+
+func (s sessionCache) Top10UsersCalling(ctx context.Context, key string) ([]string, error) {
+	cachier, ok := s.cachier.(*redisClient)
+	if !ok {
+		s.logger.Info("cachier is not redis")
+		return nil, fmt.Errorf("cachier is not redis")
+	}
+
+	// Get the top 10 users with the most calls
+	result, err := cachier.redisClient.ZRevRangeWithScores(ctx, "top_users", 0, 9).Result()
+	if err != nil {
+		s.logger.Info("error ZRevRangeWithScores:" + err.Error())
+		return nil, fmt.Errorf("error ZRevRangeWithScores")
+	}
+
+	// Convert result -> username
+	var topUsers []string
+        for _, item := range result {
+                topUsers = append(topUsers, item.Member.(string))
+        }
+
+	return topUsers, nil
 }

@@ -52,7 +52,19 @@ func (s *Server) ping(ctx *gin.Context) {
 	// Set value ping_counter cache
 	err = s.sessionCache.Set(ctx, pingCountKey, counter)
 	if err != nil {
-		s.logger.Info("failed - set value ping_counter cache`")
+		s.logger.Info("failed - set value ping_counter cache")
+		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+		return
+	}
+
+	/*
+	* 3.The /top/ API returns the top 10 people who called the /ping API the most
+	* In API /ping: Increase the number of calls in Sorted Set
+	 */
+	topUsersKey := "top_users"
+	err = s.sessionCache.IncreaseTopCalls(ctx, topUsersKey, accessPayload.Username)
+	if err != nil {
+		s.logger.Info("failed - IncreaseTopCalls")
 		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
 		return
 	}
@@ -89,4 +101,21 @@ func (s *Server) ping(ctx *gin.Context) {
 		// If the lock cannot be set (API is locked)
 		ctx.JSON(http.StatusTooManyRequests, gin.H{"error": "API is currently in use"})
 	}
+}
+
+func (s *Server) top(ctx *gin.Context) {
+	// * Using Sorted Set data structure Redis
+	/*
+	* The /top/ API returns the top 10 people who called the /ping API the most
+	* In API /ping: Increase the number of calls in Sorted Set
+	 */
+	topUsersKey := "top_users"
+	listUser, err := s.sessionCache.Top10UsersCalling(ctx, topUsersKey)
+	if err != nil {
+		s.logger.Info("failed - Top10UsersCalling")
+		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+		return
+	}
+
+	ctx.JSON(http.StatusOK, gin.H{"top_users": listUser})
 }
