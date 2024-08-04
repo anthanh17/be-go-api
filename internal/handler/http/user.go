@@ -165,7 +165,7 @@ func (s *Server) loginUser(ctx *gin.Context) {
 		SessionID: sessionID.String(),
 		Username:  user.Username,
 	}
-	err = s.sessionCache.Set(ctx, accessPayload.ID.String(), sessionData)
+	err = s.sessionCache.SetSession(ctx, accessPayload.ID.String(), sessionData)
 	if err != nil {
 		s.logger.Info("failed to set session key bytes into cache")
 		ctx.JSON(http.StatusInternalServerError, errorResponse(err))

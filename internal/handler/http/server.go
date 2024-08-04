@@ -2,6 +2,7 @@ package http
 
 import (
 	"fmt"
+	"sync"
 	"time"
 
 	"github.com/anthanh17/be-go-api/configs"
@@ -16,12 +17,13 @@ import (
 
 // Server serves HTTP requests for our service.
 type Server struct {
-	config     configs.Config
-	store      db.Store
-	tokenMaker token.Maker
-	router     *gin.Engine
+	config       configs.Config
+	store        db.Store
+	tokenMaker   token.Maker
+	router       *gin.Engine
 	sessionCache cache.SessionCache
-	logger     *zap.Logger
+	logger       *zap.Logger
+	mu           *sync.Mutex
 }
 
 // NewServer creates a new HTTP server and setup routing.
@@ -32,11 +34,12 @@ func NewServer(config configs.Config, store db.Store, cachier cache.Cachier, log
 	}
 
 	server := &Server{
-		config:     config,
-		store:      store,
-		tokenMaker: tokenMaker,
+		config:       config,
+		store:        store,
+		tokenMaker:   tokenMaker,
 		sessionCache: cache.NewSessionCache(cachier, logger),
-		logger:     logger,
+		logger:       logger,
+		mu:           new(sync.Mutex),
 	}
 
 	// Router
