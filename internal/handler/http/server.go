@@ -20,7 +20,7 @@ type Server struct {
 	store      db.Store
 	tokenMaker token.Maker
 	router     *gin.Engine
-	cacheMaker cache.Cachier
+	sessionCache cache.SessionCache
 	logger     *zap.Logger
 }
 
@@ -35,7 +35,7 @@ func NewServer(config configs.Config, store db.Store, cachier cache.Cachier, log
 		config:     config,
 		store:      store,
 		tokenMaker: tokenMaker,
-		cacheMaker: cachier,
+		sessionCache: cache.NewSessionCache(cachier, logger),
 		logger:     logger,
 	}
 
@@ -61,6 +61,9 @@ func (server *Server) setupRouter() {
 	router.POST("/users", server.createUser)
 	router.POST("/users/login", server.loginUser)
 	router.POST("/tokens/renew_access", server.renewAccessToken)
+
+	authRoutes := router.Group("/").Use(authMiddleware(server.tokenMaker))
+	authRoutes.GET("/ping", server.Ping)
 
 	server.router = router
 }

@@ -24,9 +24,15 @@ const (
 type Cachier interface {
 	Set(ctx context.Context, key string, data any, ttl time.Duration) error
 	Get(ctx context.Context, key string) (any, error)
+
 	// Adds one or more values ​​to a set
 	AddToSet(ctx context.Context, key string, data ...any) error
 	IsDataInSet(ctx context.Context, key string, data any) (bool, error)
+
+	// Using `SETNX`: SET if Not Exists. A.K.A `SET if Not Exists.`
+	SetNX(ctx context.Context, key string, data any, ttl time.Duration) (bool, error)
+
+	Del(ctx context.Context, key string) error
 }
 
 // Factory pattern

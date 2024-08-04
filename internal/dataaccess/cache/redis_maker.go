@@ -2,6 +2,7 @@ package cache
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"time"
@@ -20,10 +21,7 @@ type redisClient struct {
 	logger      *zap.Logger
 }
 
-func NewRedisClient(
-	cacheConfig configs.CacheConfig,
-	logger *zap.Logger,
-) Cachier {
+func NewRedisClient(cacheConfig configs.CacheConfig, logger *zap.Logger) Cachier {
 	// 127.0.0.1:6379
 	addrString := fmt.Sprintf("%s:%d", cacheConfig.Host, cacheConfig.Port)
 
@@ -43,8 +41,16 @@ func (r redisClient) Set(ctx context.Context, key string, data any, ttl time.Dur
 		With(zap.Any("data", data)).
 		With(zap.Duration("ttl", ttl))
 
-	if err := r.redisClient.Set(ctx, key, data, ttl).Err(); err != nil {
-		logger.With(zap.Error(err)).Error("failed to set data into cache")
+		// Marshal data to byte slice
+	dataBytes, err := json.Marshal(data) // Replace with suitable marshaling method
+	if err != nil {
+		logger.Info("failed to marshal data")
+		return status.Error(codes.Internal, "failed to marshal data")
+	}
+
+	if err := r.redisClient.Set(ctx, key, dataBytes, ttl).Err(); err != nil {
+		// logger.With(zap.Error(err)).Error("failed to set data into cache")
+		logger.Info("failed to set data into cache: " + err.Error())
 		return status.Error(codes.Internal, "failed to set data into cache")
 	}
 
@@ -93,4 +99,41 @@ func (r redisClient) IsDataInSet(ctx context.Context, key string, data any) (boo
 	}
 
 	return result, nil
+}
+
+func (r redisClient) SetNX(ctx context.Context, key string, data any, ttl time.Duration) (bool, error) {
+	logger := utils.LoggerWithContext(ctx, r.logger).
+		With(zap.String("key", key)).
+		With(zap.Any("data", data)).
+		With(zap.Duration("ttl", ttl))
+
+		// Marshal data to byte slice
+	dataBytes, err := json.Marshal(data) // Replace with suitable marshaling method
+	if err != nil {
+		logger.Info("failed to marshal data")
+		return false, status.Error(codes.Internal, "failed to marshal data")
+	}
+
+	ok, err := r.redisClient.SetNX(ctx, key, dataBytes, ttl).Result()
+	if err != nil {
+		logger.Info("failed to set data into cache: " + err.Error())
+		return false, status.Error(codes.Internal, "failed to set data into cache")
+	}
+
+	return ok, nil
+}
+
+func (r redisClient) Del(ctx context.Context, key string) error {
+	// Delete the key
+	err := r.redisClient.Del(ctx, key).Err()
+	if err != nil {
+			if err == redis.Nil {
+					r.logger.Info("Key does not exist")
+			} else {
+				r.logger.Info("Error deleting key:" + err.Error())
+			}
+			return err
+	}
+
+	return nil
 }

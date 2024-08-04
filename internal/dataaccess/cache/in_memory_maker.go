@@ -14,9 +14,7 @@ type inMemoryClient struct {
 	logger     *zap.Logger
 }
 
-func NewInMemoryClient(
-	logger *zap.Logger,
-) Cachier {
+func NewInMemoryClient(logger *zap.Logger) Cachier {
 	return &inMemoryClient{
 		cache:      make(map[string]any),
 		cacheMutex: new(sync.Mutex),
@@ -76,4 +74,23 @@ func (m inMemoryClient) getSet(key string) []any {
 	}
 
 	return set
+}
+
+func (m inMemoryClient) SetNX(ctx context.Context, key string, data any, _ time.Duration) (bool, error) {
+	// Check key exits in memory
+	_, ok := m.cache[key]
+
+	// Not exits
+	if !ok {
+		// Set
+		m.cache[key] = data
+		return true, nil
+	}
+	// Exits key
+	return false, nil
+}
+
+func (m inMemoryClient) Del(ctx context.Context, key string) error {
+	delete(m.cache, key)
+	return nil
 }

@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/anthanh17/be-go-api/internal/dataaccess/cache"
 	db "github.com/anthanh17/be-go-api/internal/dataaccess/database/sqlc"
 	"github.com/anthanh17/be-go-api/internal/utils"
 
@@ -136,6 +137,7 @@ func (s *Server) loginUser(ctx *gin.Context) {
 		return
 	}
 
+	// Create session database
 	session, err := s.store.CreateSession(ctx, db.CreateSessionParams{
 		ID:           refreshPayload.ID,
 		Username:     user.Username,
@@ -147,6 +149,25 @@ func (s *Server) loginUser(ctx *gin.Context) {
 	})
 	if err != nil {
 		s.logger.Info("cannot CreateSession")
+		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+		return
+	}
+
+	// Create session caching
+	sessionID, err := uuid.NewRandom()
+	if err != nil {
+		s.logger.Info("failed gen sessionID uuid")
+		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+		return
+	}
+
+	sessionData := cache.SessionType{
+		SessionID: sessionID.String(),
+		Username:  user.Username,
+	}
+	err = s.sessionCache.Set(ctx, accessPayload.ID.String(), sessionData)
+	if err != nil {
+		s.logger.Info("failed to set session key bytes into cache")
 		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
 		return
 	}
